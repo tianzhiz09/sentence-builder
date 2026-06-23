@@ -1,0 +1,884 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sentence Builder from Texts</title>
+<style>
+  /* ============================================================
+     COLOR KEY
+     Independent clause       = blue
+     Dependent clause         = purple
+     Coordinating conjunction = green
+     Subordinating conjunction= orange
+     Punctuation              = gray
+     Student answer area      = light neutral
+     ============================================================ */
+  :root{
+    --blue:#1d6fd4;   --blue-bg:#e3f0fd;
+    --purple:#7a3fc4; --purple-bg:#f0e6fb;
+    --green:#1e9e5a;  --green-bg:#e1f5ea;
+    --orange:#e07b1a; --orange-bg:#fdeedd;
+    --gray:#6b7280;   --gray-bg:#eef0f2;
+    --answer-bg:#f7f8fa;
+    --ink:#1f2937; --paper:#fff; --bg:#f7f9fc; --line:#d8dee6;
+    --neutral:#374151; --neutral-bg:#f3f4f6;
+    --ok:#1e9e5a; --okbg:#e6f7ee; --no:#c0392b; --nobg:#fdecea;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:"Segoe UI",system-ui,-apple-system,Arial,sans-serif;
+    background:var(--bg);color:var(--ink);font-size:18px;line-height:1.55;}
+  header.app{background:linear-gradient(135deg,#1d6fd4,#7a3fc4);color:#fff;padding:22px 18px;text-align:center;}
+  header.app h1{margin:0;font-size:1.9rem;}
+  header.app p{margin:6px 0 0;opacity:.95;}
+  .wrap{max-width:1020px;margin:0 auto;padding:16px;}
+  section.card{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:18px;margin:16px 0;}
+  h2{margin:0 0 8px;font-size:1.3rem;}
+  h3{margin:0 0 4px;}
+
+  /* learn */
+  .types{display:flex;gap:12px;flex-wrap:wrap;margin-top:10px;}
+  .type-card{flex:1 1 230px;border-radius:12px;padding:12px 14px;border:2px solid;}
+  .type-card.simple{border-color:var(--blue);background:var(--blue-bg);}
+  .type-card.compound{border-color:var(--green);background:var(--green-bg);}
+  .type-card.complex{border-color:var(--orange);background:var(--orange-bg);}
+  .legend{display:flex;gap:12px;flex-wrap:wrap;margin:10px 0 0;font-size:.85rem;}
+  .legend span{display:inline-flex;align-items:center;gap:6px;}
+  .swatch{width:14px;height:14px;border-radius:4px;display:inline-block;border:1px solid #0002;}
+
+  .btn{font:inherit;cursor:pointer;border:none;border-radius:10px;padding:11px 18px;font-weight:600;
+    background:#e5e9f0;color:#1f2937;transition:filter .15s;}
+  .btn:hover{filter:brightness(.96);}
+  .btn:active{transform:translateY(1px);}
+  .btn.primary{background:var(--blue);color:#fff;}
+  .btn.go{background:var(--green);color:#fff;}
+  .btn.warn{background:var(--orange);color:#fff;}
+  .btn.ghost{background:#fff;border:1.5px solid var(--line);}
+  .btn:focus-visible{outline:3px solid #ffce4d;outline-offset:2px;}
+  .btn[disabled]{opacity:.5;cursor:not-allowed;}
+
+  /* text source */
+  .opt-row{display:flex;gap:10px;flex-wrap:wrap;margin:8px 0;}
+  .opt{flex:1 1 250px;border:2px solid var(--line);border-radius:12px;padding:12px;cursor:pointer;}
+  .opt.active{border-color:var(--blue);background:var(--blue-bg);}
+  .opt label{font-weight:700;display:flex;gap:8px;align-items:center;cursor:pointer;}
+  textarea,input[type=file]{width:100%;font:inherit;margin-top:8px;}
+  textarea{min-height:120px;border:1.5px solid var(--line);border-radius:10px;padding:10px;}
+  .text-display{background:var(--neutral-bg);border-radius:12px;padding:14px;margin-top:12px;line-height:1.7;max-height:300px;overflow:auto;}
+  .note{background:#fff8e1;border:1.5px solid #e6b800;color:#7a5b00;border-radius:10px;padding:10px 14px;margin-top:10px;font-size:.95rem;}
+
+  /* tabs */
+  nav.tabs{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0 0;}
+  nav.tabs button{flex:1 1 180px;background:#fff;border:1.5px solid var(--line);border-radius:10px 10px 0 0;
+    padding:12px 10px;font-weight:600;cursor:pointer;font-size:.98rem;}
+  nav.tabs button[aria-selected="true"]{background:var(--neutral);color:#fff;border-color:var(--neutral);}
+  .panel{display:none;background:var(--paper);border:1px solid var(--line);border-radius:0 14px 14px 14px;padding:20px;min-height:280px;}
+  .panel.active{display:block;}
+  .instr{background:var(--neutral-bg);border-radius:10px;padding:10px 14px;margin:10px 0 16px;}
+  .gate{background:#fff8e1;border:1.5px solid #e6b800;color:#7a5b00;border-radius:10px;padding:14px;}
+
+  .controls{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px;}
+  .feedback{margin-top:16px;padding:14px 16px;border-radius:12px;border:2px solid var(--line);background:var(--answer-bg);min-height:24px;}
+  .feedback.ok{background:var(--okbg);border-color:var(--ok);color:#0f5e34;}
+  .feedback.no{background:var(--nobg);border-color:var(--no);color:#922;}
+  .feedback.hint{background:#fff8e1;border-color:#e6b800;color:#7a5b00;}
+  .progress{font-size:.9rem;color:var(--gray);margin-bottom:8px;}
+
+  .sentence-box{font-size:1.2rem;background:var(--neutral-bg);border-radius:12px;padding:14px;margin-bottom:12px;}
+  .mode-toggle{display:inline-flex;border:1.5px solid var(--line);border-radius:10px;overflow:hidden;margin-bottom:12px;}
+  .mode-toggle button{border:none;background:#fff;padding:9px 16px;cursor:pointer;font:inherit;font-weight:600;}
+  .mode-toggle button.on{background:var(--neutral);color:#fff;}
+
+  .answer-area{background:var(--answer-bg);border:1px solid var(--line);border-radius:12px;padding:14px;}
+  .field{margin:10px 0;}
+  .field label{font-weight:600;display:block;margin-bottom:4px;}
+  .field input[type=text],.field textarea,.field select{width:100%;font:inherit;border:1.5px solid var(--line);border-radius:9px;padding:9px;}
+  select{background:#fff;}
+  .guide{list-style:none;padding:0;margin:8px 0;}
+  .guide li{background:#fff;border:1px solid var(--line);border-radius:9px;padding:8px 12px;margin:6px 0;}
+
+  /* sorting */
+  .card-pool{display:flex;flex-wrap:wrap;gap:8px;padding:10px;border:1px solid var(--line);border-radius:12px;background:#fff;min-height:60px;margin-bottom:14px;}
+  .sort-area{display:flex;gap:14px;flex-wrap:wrap;}
+  .sort-col{flex:1 1 230px;min-height:160px;border:2px dashed var(--line);border-radius:12px;padding:10px;background:#fbfcfe;}
+  .sort-col.simple{border-color:var(--blue);} .sort-col.compound{border-color:var(--green);} .sort-col.complex{border-color:var(--orange);}
+  .sort-col h3{text-align:center;font-size:1rem;}
+  .sort-col.over{background:#fff7e0;}
+  .sent-card{background:#fff;border:1.5px solid var(--line);border-radius:10px;padding:9px 12px;cursor:grab;font-size:.95rem;user-select:none;white-space:normal;overflow-wrap:break-word;word-break:break-word;}
+  #g2pool .sent-card{flex:1 1 100%;}
+  .sort-col .sent-card{margin:6px 0;}
+  .sent-card.selected-ring{box-shadow:0 0 0 3px #ffce4d;cursor:pointer;}
+  .sent-card.correct{border-color:var(--ok);background:var(--okbg);}
+  .sent-card.wrong{border-color:var(--no);background:var(--nobg);}
+
+  /* connector */
+  .ideas{display:flex;gap:10px;flex-wrap:wrap;margin:10px 0;}
+  .idea{flex:1 1 280px;background:var(--blue-bg);border:2px solid var(--blue);color:#11437f;border-radius:10px;padding:12px 16px;font-weight:600;}
+  .conn-options{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0;}
+  .conn-chip{padding:9px 16px;border-radius:10px;border:2px solid var(--line);background:#fff;cursor:pointer;font-weight:600;}
+  .conn-chip.coord{border-color:var(--green);background:var(--green-bg);color:#0f5e34;}
+  .conn-chip.sub{border-color:var(--orange);background:var(--orange-bg);color:#8a4a08;}
+  .conn-chip.selected-ring{box-shadow:0 0 0 3px #ffce4d;}
+  .built{font-size:1.15rem;background:var(--neutral-bg);border-radius:12px;padding:14px;margin:12px 0;min-height:28px;}
+
+  .sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);}
+  footer{text-align:center;color:var(--gray);font-size:.85rem;padding:20px;}
+  @media (max-width:640px){body{font-size:17px;}header.app h1{font-size:1.5rem;}}
+</style>
+</head>
+<body>
+<header class="app">
+  <h1>📖 Sentence Builder from Texts</h1>
+  <p>Learn simple, compound &amp; complex sentences by reading real texts</p>
+</header>
+
+<div class="wrap">
+
+  <!-- LEARN -->
+  <section class="card">
+    <h2>Learn: the three sentence types</h2>
+    <div class="types">
+      <div class="type-card simple"><h3>Simple</h3>One independent clause.<br><small><em>Maria studies English.</em></small></div>
+      <div class="type-card compound"><h3>Compound</h3>Two independent clauses joined by a coordinating conjunction (for, and, nor, but, or, yet, so).<br><small><em>Maria studies English, and she practices every day.</em></small></div>
+      <div class="type-card complex"><h3>Complex</h3>One independent clause + one dependent clause joined by a subordinating conjunction (because, although, when, if, before, after, while).<br><small><em>Because Maria studies every day, she is improving.</em></small></div>
+    </div>
+    <p style="margin-top:12px;">An <strong style="color:var(--blue)">independent clause</strong> has a subject and a verb and can stand alone (<em>“I finished my homework.”</em>). A <strong style="color:var(--purple)">dependent clause</strong> has a subject and a verb but cannot stand alone (<em>“because I was tired”</em>). Connectors such as <em>and, but, so, because, although, when, if, while, after, before</em> show how ideas relate — syntax is connected to meaning, not only correctness.</p>
+    <div class="legend">
+      <span><span class="swatch" style="background:var(--blue-bg);border-color:var(--blue)"></span>Independent clause</span>
+      <span><span class="swatch" style="background:var(--purple-bg);border-color:var(--purple)"></span>Dependent clause</span>
+      <span><span class="swatch" style="background:var(--green-bg);border-color:var(--green)"></span>Coordinating conjunction</span>
+      <span><span class="swatch" style="background:var(--orange-bg);border-color:var(--orange)"></span>Subordinating conjunction</span>
+      <span><span class="swatch" style="background:var(--gray-bg);border-color:var(--gray)"></span>Punctuation</span>
+    </div>
+  </section>
+
+  <!-- TEXT SOURCE -->
+  <section class="card">
+    <h2>1 · Choose Your Text</h2>
+    <div class="opt-row">
+      <div class="opt active" data-opt="sample">
+        <label><input type="radio" name="src" value="sample" checked> Option 1 · Use the Sample Text</label>
+        <small>Donald Batchelder, “The Green Banana” (built in).</small>
+      </div>
+      <div class="opt" data-opt="paste">
+        <label><input type="radio" name="src" value="paste"> Option 2 · Paste My Own Text</label>
+        <textarea id="pasteBox" placeholder="Paste a short text here…" disabled></textarea>
+      </div>
+      <div class="opt" data-opt="upload">
+        <label><input type="radio" name="src" value="upload"> Option 3 · Upload a .txt File</label>
+        <input type="file" id="fileBox" accept=".txt,text/plain" disabled>
+        <small>Plain .txt only (no PDF, Word, or images).</small>
+      </div>
+    </div>
+    <button class="btn primary" id="useTextBtn">Use This Text →</button>
+    <div id="textDisplayWrap" style="display:none;">
+      <h3 style="margin-top:16px;">Your text <small id="sentCount" style="color:var(--gray);font-weight:400;"></small></h3>
+      <div class="text-display" id="textDisplay"></div>
+      <div class="note" id="reviewNote">This is a practice activity. Some sentence types may need teacher review.</div>
+    </div>
+  </section>
+
+  <!-- NAV -->
+  <nav class="tabs" role="tablist" aria-label="Games">
+    <button role="tab" aria-selected="true"  data-tab="g1">1 · Find the Clauses</button>
+    <button role="tab" aria-selected="false" data-tab="g2">2 · Sort the Sentences</button>
+    <button role="tab" aria-selected="false" data-tab="g3">3 · Choose the Connector</button>
+    <button role="tab" aria-selected="false" data-tab="g4">4 · Change the Sentence</button>
+  </nav>
+
+  <!-- GAME 1 -->
+  <section class="panel active" id="g1" role="tabpanel">
+    <h2>🔍 Find the Clauses</h2>
+    <div class="instr">Choose a sentence from the text. Then find the clause or clauses inside the sentence, label each one, and decide the sentence type.</div>
+    <div id="g1gate" class="gate">Choose and load a text above, then come back to play.</div>
+    <div id="g1body" style="display:none;">
+      <div class="mode-toggle" role="group" aria-label="Mode">
+        <button id="g1modeA" class="on" onclick="G1.setMode('A')">Mode A · App picks sentences</button>
+        <button id="g1modeB" onclick="G1.setMode('B')">Mode B · I choose a sentence</button>
+      </div>
+      <div class="progress" id="g1prog"></div>
+      <div id="g1modeAwrap">
+        <div class="sentence-box" id="g1sentence"></div>
+      </div>
+      <div id="g1modeBwrap" style="display:none;">
+        <div class="field">
+          <label for="g1paste">Copy one sentence from the text above and paste it here:</label>
+          <textarea id="g1paste" placeholder="Paste one sentence…"></textarea>
+        </div>
+      </div>
+      <ul class="guide">
+        <li>❓ Can this part stand alone as a complete sentence?</li>
+        <li>❓ Does a part begin with a word like <em>because, although, when, if, before, after, while</em> (or <em>who, which, that</em>)?</li>
+        <li>❓ How many independent clauses do you see?</li>
+        <li>❓ Is this sentence simple, compound, or complex?</li>
+      </ul>
+      <div class="answer-area">
+        <div class="field">
+          <label for="g1c1">Clause 1 — type or paste the clause you found:</label>
+          <input type="text" id="g1c1" placeholder="First clause…">
+          <select id="g1c1t"><option value="">Choose clause type…</option><option value="independent">Independent clause</option><option value="dependent">Dependent clause</option></select>
+        </div>
+        <div class="field">
+          <label for="g1c2">Clause 2 (if there is one):</label>
+          <input type="text" id="g1c2" placeholder="Second clause (optional)…">
+          <select id="g1c2t"><option value="">Choose clause type…</option><option value="independent">Independent clause</option><option value="dependent">Dependent clause</option></select>
+        </div>
+        <div class="field">
+          <label for="g1type">This whole sentence is…</label>
+          <select id="g1type"><option value="">Choose sentence type…</option><option value="simple">Simple</option><option value="compound">Compound</option><option value="complex">Complex</option></select>
+        </div>
+      </div>
+      <div class="controls">
+        <button class="btn go" onclick="G1.check()">✓ Check Answer</button>
+        <button class="btn warn" onclick="G1.hint()">💡 Show Hint</button>
+        <button class="btn ghost" onclick="G1.reset()">↺ Reset</button>
+        <button class="btn primary" id="g1next" onclick="G1.next()">Next →</button>
+      </div>
+      <div class="feedback" id="g1fb" aria-live="polite"></div>
+    </div>
+  </section>
+
+  <!-- GAME 2 -->
+  <section class="panel" id="g2" role="tabpanel">
+    <h2>🗂️ Sort the Sentences</h2>
+    <div class="instr">Read each sentence from the text. Drag it into Simple, Compound, or Complex — or tap a card, then tap a column.</div>
+    <div id="g2gate" class="gate">Choose and load a text above, then come back to play.</div>
+    <div id="g2body" style="display:none;">
+      <div class="card-pool" id="g2pool" aria-label="Sentences to sort"></div>
+      <div class="sort-area">
+        <div class="sort-col simple"   data-cat="simple"><h3>Simple</h3></div>
+        <div class="sort-col compound" data-cat="compound"><h3>Compound</h3></div>
+        <div class="sort-col complex"  data-cat="complex"><h3>Complex</h3></div>
+      </div>
+      <div class="controls">
+        <button class="btn go" onclick="G2.check()">✓ Check Answer</button>
+        <button class="btn warn" onclick="G2.hint()">💡 Show Hint</button>
+        <button class="btn ghost" onclick="G2.reset()">↺ Reset</button>
+      </div>
+      <div class="feedback" id="g2fb" aria-live="polite"></div>
+    </div>
+  </section>
+
+  <!-- GAME 3 -->
+  <section class="panel" id="g3" role="tabpanel">
+    <h2>🔗 Choose the Connector</h2>
+    <div class="instr">Read the two ideas. Choose the best connector to show the relationship between them.</div>
+    <div id="g3gate" class="gate">Choose and load a text above, then come back to play.</div>
+    <div id="g3body" style="display:none;">
+      <div class="progress" id="g3prog"></div>
+      <div class="ideas" id="g3ideas"></div>
+      <div class="conn-options" id="g3options"></div>
+      <div class="built" id="g3built">Choose a connector to build a sentence…</div>
+      <div class="controls">
+        <button class="btn go" onclick="G3.check()">✓ Check Answer</button>
+        <button class="btn warn" onclick="G3.hint()">💡 Show Hint</button>
+        <button class="btn ghost" onclick="G3.reset()">↺ Reset</button>
+        <button class="btn primary" onclick="G3.next()">Next →</button>
+      </div>
+      <div class="feedback" id="g3fb" aria-live="polite"></div>
+    </div>
+  </section>
+
+  <!-- GAME 4 -->
+  <section class="panel" id="g4" role="tabpanel">
+    <h2>🔄 Change the Sentence</h2>
+    <div class="instr">Use one sentence from the text. Change it into a new sentence type by following the task.</div>
+    <div id="g4gate" class="gate">Choose and load a text above, then come back to play.</div>
+    <div id="g4body" style="display:none;">
+      <div class="progress" id="g4prog"></div>
+      <p>Original sentence:</p>
+      <div class="sentence-box" id="g4orig"></div>
+      <p>Your task: <strong id="g4task"></strong></p>
+      <div class="field answer-area">
+        <label for="g4input">Write your new sentence:</label>
+        <textarea id="g4input" placeholder="Type your new sentence here…"></textarea>
+      </div>
+      <div class="controls">
+        <button class="btn go" onclick="G4.check()">✓ Check Answer</button>
+        <button class="btn warn" onclick="G4.hint()">💡 Show Hint</button>
+        <button class="btn ghost" onclick="G4.reset()">↺ Reset</button>
+        <button class="btn primary" onclick="G4.next()">Next →</button>
+      </div>
+      <div class="feedback" id="g4fb" aria-live="polite"></div>
+    </div>
+  </section>
+
+  <footer>Sentence Builder from Texts · Works offline. No login or internet needed. A practice tool — some sentence types may need teacher review.</footer>
+</div>
+
+<script>
+/* ============================================================================
+   // Teachers can edit the sample text, answer keys, connector questions, and transformation tasks below.
+   ============================================================================
+   The code is organized into these sections:
+     1. SAMPLE TEXT DATA
+     2. TEACHER ANSWER KEYS FOR THE DEFAULT TEXT
+     3. TEXT PROCESSING + SENTENCE SPLITTING
+     4. RULE-BASED SENTENCE-TYPE GUESSING
+     5. DRAG-AND-DROP + CLICK-TO-MOVE UTILITIES
+     6. GAME RENDERING + FEEDBACK
+   ============================================================================ */
+
+/* ---------------------------------------------------------------------------
+   SECTION 1 — SAMPLE TEXT DATA
+   To change the built-in text, edit the "text" field below.
+--------------------------------------------------------------------------- */
+const sampleTexts = [
+  {
+    title: "The Green Banana Sample",
+    level: "Intermediate/Advanced ESL",
+    text: "If some of the goals of education in modern times are to open up possibilities for discovery and expanded learning, and to open up communication and the chances for mutual acceptance and recognition in a wider world, it may be important to offer students a perspective on their own immediate center of the world by enabling them to participate sensitively as cross-cultural sojourners to the center of someone else's world. The cultures of the world are full of unexpected green bananas with special value and meanings. They have been there for ages, ripening slowly, perhaps waiting patiently for our students to come along to encounter them. There are people there who will interpret the special meanings, give them perspective, combine ideas in new ways, and slice old concepts to answer modern questions. Personal discoveries converge in a flow of learning moments, developing a healthy tug of war between that original center of the world from whence the student comes, and the new center being experienced. Eventually the student has a strong sense of identity in two centers, in two cultures. Both have special meanings, and the student has doubled his or her self-awareness and cultural awareness."
+  }
+];
+
+/* ---------------------------------------------------------------------------
+   SECTION 2 — TEACHER ANSWER KEYS FOR THE DEFAULT TEXT
+--------------------------------------------------------------------------- */
+
+// Game 1 — sample clause analyses (used in Mode A when the default text is loaded)
+const greenBananaClauseExamples = [
+  {
+    sentence: "If some of the goals of education in modern times are to open up possibilities for discovery and expanded learning, and to open up communication and the chances for mutual acceptance and recognition in a wider world, it may be important to offer students a perspective on their own immediate center of the world by enabling them to participate sensitively as cross-cultural sojourners to the center of someone else's world.",
+    clauses: [
+      { text: "If some of the goals of education in modern times are to open up possibilities for discovery and expanded learning, and to open up communication and the chances for mutual acceptance and recognition in a wider world", type: "dependent" },
+      { text: "it may be important to offer students a perspective on their own immediate center of the world", type: "independent" }
+    ],
+    type: "complex",
+    explanation: "This is a complex sentence because it has a dependent clause beginning with ‘if’ and an independent clause beginning with ‘it may be important.’"
+  },
+  {
+    sentence: "The cultures of the world are full of unexpected green bananas with special value and meanings.",
+    clauses: [
+      { text: "The cultures of the world are full of unexpected green bananas with special value and meanings", type: "independent" }
+    ],
+    type: "simple",
+    explanation: "This is a simple sentence because it has one independent clause."
+  },
+  {
+    sentence: "There are people there who will interpret the special meanings, give them perspective, combine ideas in new ways, and slice old concepts to answer modern questions.",
+    clauses: [
+      { text: "There are people there", type: "independent" },
+      { text: "who will interpret the special meanings, give them perspective, combine ideas in new ways, and slice old concepts to answer modern questions", type: "dependent" }
+    ],
+    type: "complex",
+    explanation: "This is a complex sentence because it has an independent clause and a dependent relative clause beginning with ‘who.’"
+  }
+];
+
+// Game 2 — sentence sorting answer key for the default text
+const greenBananaSentenceKey = [
+  { sentence: "If some of the goals of education in modern times are to open up possibilities for discovery and expanded learning, and to open up communication and the chances for mutual acceptance and recognition in a wider world, it may be important to offer students a perspective on their own immediate center of the world by enabling them to participate sensitively as cross-cultural sojourners to the center of someone else's world.", type: "complex", reason: "It begins with an ‘if’ dependent clause and has an independent clause." },
+  { sentence: "The cultures of the world are full of unexpected green bananas with special value and meanings.", type: "simple", reason: "It has one independent clause." },
+  { sentence: "They have been there for ages, ripening slowly, perhaps waiting patiently for our students to come along to encounter them.", type: "simple", reason: "It has one main independent clause with added participial phrases." },
+  { sentence: "There are people there who will interpret the special meanings, give them perspective, combine ideas in new ways, and slice old concepts to answer modern questions.", type: "complex", reason: "It has an independent clause and a relative clause beginning with ‘who.’" },
+  { sentence: "Personal discoveries converge in a flow of learning moments, developing a healthy tug of war between that original center of the world from whence the student comes, and the new center being experienced.", type: "complex", reason: "It has one main independent clause and an embedded dependent/relative structure: ‘from whence the student comes.’" },
+  { sentence: "Eventually the student has a strong sense of identity in two centers, in two cultures.", type: "simple", reason: "It has one independent clause." },
+  { sentence: "Both have special meanings, and the student has doubled his or her self-awareness and cultural awareness.", type: "compound", reason: "It has two independent clauses connected by comma + ‘and.’" }
+];
+
+// Game 3 — connector questions for the default text
+const connectorQuestions = [
+  {
+    idea1: "Education can open possibilities for discovery.",
+    idea2: "Students need opportunities to experience someone else's world.",
+    options: ["because", "but", "or", "although"],
+    bestAnswer: "because",
+    explanation: "‘Because’ shows a reason. This creates a complex sentence because the part beginning with ‘because’ gives the reason."
+  },
+  {
+    idea1: "The cultures of the world are full of unexpected green bananas.",
+    idea2: "Students may not notice their value at first.",
+    options: ["but", "and", "when", "so"],
+    bestAnswer: "but",
+    explanation: "‘But’ shows contrast. This creates a compound sentence when it connects two independent clauses."
+  },
+  {
+    idea1: "Students encounter a new cultural center.",
+    idea2: "They can develop a stronger sense of identity.",
+    options: ["when", "or", "but", "although"],
+    bestAnswer: "when",
+    explanation: "‘When’ shows time or condition. This creates a complex sentence because the part beginning with ‘when’ is dependent."
+  },
+  {
+    idea1: "Personal discoveries create learning moments.",
+    idea2: "Students develop cultural awareness.",
+    options: ["so", "although", "or", "while"],
+    bestAnswer: "so",
+    explanation: "‘So’ shows result. This creates a compound sentence when it connects two independent clauses."
+  },
+  {
+    idea1: "The student comes from one center of the world.",
+    idea2: "The student experiences a new center.",
+    options: ["and", "because", "although", "if"],
+    bestAnswer: "and",
+    explanation: "‘And’ adds another related idea. This creates a compound sentence when both sides can stand alone."
+  }
+];
+
+// Game 4 — transformation tasks for the default text
+const transformationTasks = [
+  {
+    original: "The cultures of the world are full of unexpected green bananas with special value and meanings.",
+    task: "Change this sentence into a compound sentence by adding a contrasting idea with ‘but.’",
+    target: "compound",
+    possible: "The cultures of the world are full of unexpected green bananas with special value and meanings, but students may not recognize them at first.",
+    feedback: "This is a compound sentence because it connects two independent clauses with comma + ‘but.’"
+  },
+  {
+    original: "Eventually the student has a strong sense of identity in two centers, in two cultures.",
+    task: "Change this sentence into a complex sentence by adding a dependent clause with ‘when.’",
+    target: "complex",
+    possible: "When the student learns from another culture, the student eventually has a strong sense of identity in two centers, in two cultures.",
+    feedback: "This is a complex sentence because it begins with a dependent clause using ‘when.’"
+  },
+  {
+    original: "If some of the goals of education in modern times are to open up possibilities for discovery and expanded learning, and to open up communication and the chances for mutual acceptance and recognition in a wider world, it may be important to offer students a perspective on their own immediate center of the world by enabling them to participate sensitively as cross-cultural sojourners to the center of someone else's world.",
+    task: "Break this long complex sentence into two or three shorter sentences.",
+    target: "simpler",
+    possible: "Education can open possibilities for discovery and expanded learning. It can also support communication and mutual acceptance. For this reason, students need opportunities to experience someone else’s world.",
+    feedback: "This revision makes the meaning easier to follow. The original sentence was complex because it began with an ‘if’ clause."
+  },
+  {
+    original: "They have been there for ages, ripening slowly, perhaps waiting patiently for our students to come along to encounter them.",
+    task: "Add a reason using ‘because.’",
+    target: "complex",
+    possible: "They have been there for ages, perhaps waiting patiently for our students to encounter them, because students need time to recognize their value.",
+    feedback: "You used ‘because’ to add a reason. Check whether the part after ‘because’ has a subject and a verb."
+  },
+  {
+    original: "Both have special meanings, and the student has doubled his or her self-awareness and cultural awareness.",
+    task: "Write a new compound sentence using the same pattern: independent clause + comma + and + independent clause.",
+    target: "compound",
+    possible: "The old center has special meaning, and the new center helps the student grow.",
+    feedback: "This follows a compound sentence pattern because both sides can stand alone."
+  }
+];
+
+/* ============================================================================
+   ENGINE — teachers usually do not need to edit below this line.
+   ============================================================================ */
+
+/* ---- shared word lists ---- */
+const COORD = ["for","and","nor","but","or","yet","so"];
+const SUB   = ["because","although","when","while","if","before","after","since","unless","though"];
+const SUB_MULTI = ["even though"];
+const RELATIVE = ["who","which","that"];
+
+function $(id){ return document.getElementById(id); }
+function setFb(el,msg,kind){ el.className="feedback"+(kind?" "+kind:""); el.innerHTML=msg; }
+function shuffle(a){ a=a.slice(); for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];} return a; }
+
+/* ---------------------------------------------------------------------------
+   SECTION 3 — TEXT PROCESSING + SENTENCE SPLITTING
+   Simple splitting on the punctuation marks  .  ?  !
+--------------------------------------------------------------------------- */
+function splitSentences(text){
+  if(!text) return [];
+  // Split after . ? ! followed by whitespace; keep the punctuation mark.
+  const parts = text.replace(/\s+/g," ").trim().match(/[^.?!]+[.?!]+|[^.?!]+$/g) || [];
+  return parts.map(s=>s.trim()).filter(s=>s.length>1);
+}
+
+/* ---------------------------------------------------------------------------
+   SECTION 4 — RULE-BASED SENTENCE-TYPE GUESSING
+   These are simple guesses. The app tells students some sentences may need
+   teacher review.
+--------------------------------------------------------------------------- */
+function guessType(sentence){
+  const s = " " + sentence.toLowerCase() + " ";
+  // compound: comma + coordinating conjunction
+  const compoundPat = COORD.some(c => new RegExp(",\\s+"+c+"\\b").test(s));
+  // complex: subordinating conjunction or relative pronoun present
+  const hasSub = SUB.some(w => new RegExp("\\b"+w+"\\b").test(s)) ||
+                 SUB_MULTI.some(w => s.includes(" "+w+" ")) ||
+                 RELATIVE.some(w => new RegExp("\\b"+w+"\\b").test(s));
+  if(hasSub) return { type:"complex", reason:"It contains a subordinating conjunction or relative pronoun (such as because, although, when, who, which, or that)." };
+  if(compoundPat) return { type:"compound", reason:"It contains a comma followed by a coordinating conjunction (such as , and / , but / , so)." };
+  return { type:"simple", reason:"It does not show a compound or complex pattern, so it may have one main independent clause." };
+}
+
+function connectorKind(conn){
+  return COORD.includes(conn.toLowerCase()) ? "coordinating" : "subordinating";
+}
+
+/* ---------------------------------------------------------------------------
+   APP STATE
+--------------------------------------------------------------------------- */
+const APP = { text:"", sentences:[], isDefault:true, key:[] };
+
+/* ---- Text source UI ---- */
+document.querySelectorAll('input[name=src]').forEach(r=>{
+  r.addEventListener('change', ()=>{
+    document.querySelectorAll('.opt').forEach(o=>o.classList.toggle('active', o.dataset.opt===r.value));
+    $('pasteBox').disabled = r.value!=='paste';
+    $('fileBox').disabled  = r.value!=='upload';
+  });
+});
+document.querySelectorAll('.opt').forEach(o=>{
+  o.addEventListener('click', e=>{ if(e.target.tagName!=='TEXTAREA' && e.target.type!=='file'){ const radio=o.querySelector('input'); radio.checked=true; radio.dispatchEvent(new Event('change')); } });
+});
+
+let uploadedText = "";
+$('fileBox').addEventListener('change', e=>{
+  const f = e.target.files[0]; if(!f) return;
+  const reader = new FileReader();
+  reader.onload = ev => { uploadedText = ev.target.result; };
+  reader.readAsText(f);
+});
+
+$('useTextBtn').addEventListener('click', ()=>{
+  const src = document.querySelector('input[name=src]:checked').value;
+  let text="", isDefault=false;
+  if(src==='sample'){ text = sampleTexts[0].text; isDefault=true; }
+  else if(src==='paste'){ text = $('pasteBox').value.trim(); }
+  else if(src==='upload'){ text = uploadedText.trim(); }
+
+  if(!text){ alert("Please choose the sample text, paste some text, or upload a .txt file first."); return; }
+
+  APP.text = text;
+  APP.isDefault = isDefault;
+  APP.sentences = splitSentences(text);
+
+  // Build the working answer key: teacher key for default, rule-based guess otherwise.
+  if(isDefault){
+    APP.key = APP.sentences.map(s=>{
+      const found = greenBananaSentenceKey.find(k=>k.sentence.replace(/\s+/g,' ').trim()===s.replace(/\s+/g,' ').trim());
+      return found ? {sentence:s, type:found.type, reason:found.reason, source:"teacher"}
+                   : Object.assign({sentence:s, source:"rule"}, guessType(s));
+    });
+  } else {
+    APP.key = APP.sentences.map(s=> Object.assign({sentence:s, source:"rule"}, guessType(s)) );
+  }
+
+  // show text
+  $('textDisplay').textContent = text;
+  $('sentCount').textContent = "· " + APP.sentences.length + " sentences found";
+  $('textDisplayWrap').style.display='block';
+
+  // reveal games
+  ['g1','g2','g3','g4'].forEach(g=>{ $(g+'gate').style.display='none'; $(g+'body').style.display='block'; });
+  G1.load(); G2.load(); G3.load(); G4.load();
+});
+
+/* ---- tabs ---- */
+document.querySelectorAll('nav.tabs button').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('nav.tabs button').forEach(b=>b.setAttribute('aria-selected', b===btn));
+    document.querySelectorAll('.panel').forEach(p=>p.classList.toggle('active', p.id===btn.dataset.tab));
+  });
+});
+
+/* ---------------------------------------------------------------------------
+   SECTION 5 — DRAG-AND-DROP + CLICK-TO-MOVE (used by Game 2)
+--------------------------------------------------------------------------- */
+function enableSortDnD(){
+  document.querySelectorAll('#g2 .sort-col').forEach(col=>{
+    col.ondragover = e=>{ e.preventDefault(); col.classList.add('over'); };
+    col.ondragleave = ()=> col.classList.remove('over');
+    col.ondrop = e=>{ e.preventDefault(); col.classList.remove('over');
+      const id=e.dataTransfer.getData('text/plain');
+      const card=document.querySelector('#g2 .sent-card[data-id="'+id+'"]'); if(card) G2.place(card,col); };
+    col.onclick = ()=>{ if(G2.selected) G2.place(G2.selected,col); };
+  });
+  const pool=$('g2pool');
+  pool.ondragover = e=>e.preventDefault();
+  pool.ondrop = e=>{ e.preventDefault(); const id=e.dataTransfer.getData('text/plain');
+    const card=document.querySelector('#g2 .sent-card[data-id="'+id+'"]'); if(card) G2.place(card,pool); };
+  pool.onclick = e=>{ if(e.target===pool && G2.selected) G2.place(G2.selected,pool); };
+}
+
+/* ---------------------------------------------------------------------------
+   SECTION 6 — GAMES
+--------------------------------------------------------------------------- */
+
+/* ===== GAME 1: FIND THE CLAUSES ===== */
+const G1 = {
+  mode:'A', i:0, items:[],
+  load(){
+    // Mode A items: teacher examples for default text, else random sentences
+    if(APP.isDefault){ this.items = greenBananaClauseExamples.slice(); }
+    else {
+      const pick = shuffle(APP.sentences).slice(0, Math.min(4, APP.sentences.length));
+      this.items = pick.map(s=>({ sentence:s, clauses:null, type:guessType(s).type, explanation:null }));
+    }
+    this.i=0; this.setMode('A'); this.render();
+  },
+  setMode(m){
+    this.mode=m;
+    $('g1modeA').classList.toggle('on', m==='A');
+    $('g1modeB').classList.toggle('on', m==='B');
+    $('g1modeAwrap').style.display = m==='A'?'block':'none';
+    $('g1modeBwrap').style.display = m==='B'?'block':'none';
+    $('g1next').style.display = m==='A'?'inline-block':'none';
+    this.clearInputs(); setFb($('g1fb'),'','');
+    if(m==='A') this.render();
+  },
+  render(){
+    if(this.mode!=='A') return;
+    if(!this.items.length){ $('g1sentence').textContent="No sentences available."; return; }
+    const it=this.items[this.i];
+    $('g1prog').textContent = `Sentence ${this.i+1} of ${this.items.length}`;
+    $('g1sentence').textContent = '“'+it.sentence+'”';
+  },
+  clearInputs(){ ['g1c1','g1c2'].forEach(id=>$(id).value=''); ['g1c1t','g1c2t','g1type'].forEach(id=>$(id).value=''); },
+  currentSentence(){ return this.mode==='A' ? (this.items[this.i]||{}).sentence : $('g1paste').value.trim(); },
+  check(){
+    const sentence = this.currentSentence();
+    if(!sentence){ setFb($('g1fb'),'Please choose or paste a sentence first.','hint'); return; }
+    const chosenType = $('g1type').value;
+    const c1t=$('g1c1t').value, c2t=$('g1c2t').value;
+    if(!c1t || !chosenType){ setFb($('g1fb'),'Good thinking — now label at least one clause and choose the sentence type. Ask: can each clause stand alone?','hint'); return; }
+
+    // Teacher reference (Mode A on default text)
+    let ref=null;
+    if(this.mode==='A' && APP.isDefault && this.items[this.i].type){ ref=this.items[this.i]; }
+    else { ref = {type: guessType(sentence).type, explanation:null}; }
+
+    let msg = "Good thinking. ";
+    // reflective check on clauses
+    if(c1t==='independent' && c2t==='independent'){
+      msg += "You marked two independent clauses, so this sentence may be <strong>compound</strong> — check that a coordinating conjunction (and, but, so…) joins them. ";
+    } else if((c1t==='dependent' && c2t==='independent') || (c1t==='independent' && c2t==='dependent')){
+      msg += "You marked one dependent and one independent clause, so this sentence may be <strong>complex</strong>. ";
+    } else if(c1t==='independent' && !c2t){
+      msg += "You found one independent clause, so this sentence may be <strong>simple</strong>. ";
+    } else if(c1t==='dependent' && !c2t){
+      msg += "A dependent clause cannot stand alone — is there also an independent clause in this sentence? ";
+    }
+
+    const matches = (chosenType===ref.type);
+    if(matches){
+      let cls = "ok";
+      msg = "✅ " + msg + "Your sentence type matches a likely answer. ";
+      if(ref.explanation) msg += ref.explanation + " ";
+      if(!APP.isDefault || this.mode==='B') msg += "<br><em>This is a practice activity. Some sentence types may need teacher review.</em>";
+      setFb($('g1fb'), msg, cls);
+    } else {
+      msg += "A likely answer here is <strong>"+ref.type+"</strong>. Remember: one independent clause → simple; two independent clauses → compound; one independent + one dependent clause → complex.";
+      msg += "<br><em>This is a practice activity. Some sentence types may need teacher review.</em>";
+      setFb($('g1fb'), msg, 'hint');
+    }
+  },
+  hint(){
+    setFb($('g1fb'),'💡 Check whether each clause has both a subject and a verb. Then ask: “Can it stand alone?” If a part begins with because, although, when, if, who, which, or that, it is usually a dependent clause.','hint');
+  },
+  reset(){ this.clearInputs(); $('g1paste').value=''; setFb($('g1fb'),'',''); },
+  next(){ if(this.mode!=='A')return; this.i=(this.i+1)%this.items.length; this.clearInputs(); setFb($('g1fb'),'',''); this.render(); }
+};
+
+/* ===== GAME 2: SORT THE SENTENCES ===== */
+const G2 = {
+  selected:null,
+  load(){
+    const pool=$('g2pool'); pool.innerHTML='';
+    document.querySelectorAll('#g2 .sort-col .sent-card').forEach(n=>n.remove());
+    APP.sentences.forEach((s,i)=>{
+      const card=document.createElement('div');
+      card.className='sent-card'; card.draggable=true; card.dataset.id=i;
+      card.textContent = s;
+      card.addEventListener('dragstart', e=>e.dataTransfer.setData('text/plain', i));
+      card.addEventListener('click', ()=>{
+        if(this.selected===card){ card.classList.remove('selected-ring'); this.selected=null; return; }
+        if(this.selected) this.selected.classList.remove('selected-ring');
+        this.selected=card; card.classList.add('selected-ring');
+      });
+      pool.appendChild(card);
+    });
+    enableSortDnD();
+    setFb($('g2fb'),'','');
+  },
+  place(card,target){ target.appendChild(card); card.classList.remove('selected-ring','correct','wrong'); this.selected=null; },
+  hint(){ setFb($('g2fb'),'💡 Simple = one independent clause. Compound = two independent clauses joined by a coordinating conjunction (and, but, so). Complex = a part that begins with because, although, when, who, which, that… These labels are based on simple rules, so some sentences may need teacher review.','hint'); },
+  check(){
+    let placed=0, correct=0, details=[];
+    document.querySelectorAll('#g2 .sent-card').forEach(card=>{
+      const col=card.closest('.sort-col'); card.classList.remove('correct','wrong');
+      if(!col) return; placed++;
+      const key=APP.key[+card.dataset.id];
+      if(col.dataset.cat===key.type){ card.classList.add('correct'); correct++; }
+      else { card.classList.add('wrong');
+        const word = key.type==='complex'?'complex':key.type==='compound'?'compound':'simple';
+        details.push(`This sentence may be <strong>${word}</strong>. ${key.reason}`);
+      }
+    });
+    if(!placed){ setFb($('g2fb'),'Place the sentence cards into the columns first. Drag a card, or tap a card then tap a column.','hint'); return; }
+    let head;
+    if(correct===placed && placed===APP.sentences.length) head = `✅ Good thinking! All ${placed} sentences match the suggested answers. `;
+    else head = `You matched ${correct} of ${placed} placed cards to the suggested answers. Green = matches; red = take another look. `;
+    const tail = APP.isDefault
+      ? "<br><em>Suggested answers come from a teacher key for this text.</em>"
+      : "<br><em>These labels are based on simple rules, so some sentences may need teacher review.</em>";
+    setFb($('g2fb'), head + (details.length?"<br><br>"+details.join("<br>"):"") + tail, correct===placed?'ok':'hint');
+  },
+  reset(){ this.load(); }
+};
+
+/* ===== GAME 3: CHOOSE THE CONNECTOR ===== */
+const G3 = {
+  i:0, items:[], chosen:null,
+  load(){
+    if(APP.isDefault){ this.items = connectorQuestions.slice(); }
+    else {
+      // pair neighboring sentences from the text
+      this.items=[];
+      for(let k=0;k+1<APP.sentences.length && this.items.length<5;k+=1){
+        this.items.push({
+          idea1: APP.sentences[k], idea2: APP.sentences[k+1],
+          options: ["and","but","so","because","when","although"],
+          bestAnswer: null,
+          explanation: null
+        });
+      }
+      if(!this.items.length && APP.sentences.length){
+        this.items.push({ idea1:APP.sentences[0], idea2:"(add your own second idea)", options:["and","but","so","because","when","although"], bestAnswer:null, explanation:null });
+      }
+    }
+    this.i=0; this.render();
+  },
+  render(){
+    this.chosen=null;
+    const it=this.items[this.i];
+    $('g3prog').textContent = `Question ${this.i+1} of ${this.items.length}`;
+    const ideas=$('g3ideas'); ideas.innerHTML='';
+    [['Idea 1',it.idea1],['Idea 2',it.idea2]].forEach(([lbl,txt])=>{
+      const d=document.createElement('div'); d.className='idea'; d.innerHTML='<small>'+lbl+'</small><br>'+txt; ideas.appendChild(d);
+    });
+    const opts=$('g3options'); opts.innerHTML='';
+    it.options.forEach(c=>{
+      const b=document.createElement('button');
+      b.className='conn-chip '+(connectorKind(c)==='coordinating'?'coord':'sub');
+      b.textContent=c; b.onclick=()=>this.pick(c,b,it); opts.appendChild(b);
+    });
+    $('g3built').textContent='Choose a connector to build a sentence…';
+    setFb($('g3fb'),'','');
+  },
+  pick(conn,btn,it){
+    this.chosen=conn;
+    document.querySelectorAll('#g3options .conn-chip').forEach(x=>x.classList.remove('selected-ring'));
+    btn.classList.add('selected-ring');
+    const i1=it.idea1.replace(/[.!?]+$/,'');
+    const i2=it.idea2.replace(/[.!?]+$/,'');
+    let sentence;
+    if(connectorKind(conn)==='coordinating'){
+      sentence = `${i1}, ${conn} ${i2.charAt(0).toLowerCase()+i2.slice(1)}.`;
+    } else {
+      const sub=conn.charAt(0).toUpperCase()+conn.slice(1);
+      sentence = `${sub} ${i1.charAt(0).toLowerCase()+i1.slice(1)}, ${i2.charAt(0).toLowerCase()+i2.slice(1)}.`;
+    }
+    $('g3built').textContent=sentence;
+  },
+  check(){
+    if(!this.chosen){ setFb($('g3fb'),'Choose a connector first.','hint'); return; }
+    const it=this.items[this.i];
+    const kind=connectorKind(this.chosen);
+    const typeWord = kind==='coordinating'?'compound':'complex';
+    if(it.bestAnswer){ // default text — has a best answer
+      if(this.chosen===it.bestAnswer){
+        setFb($('g3fb'),'✅ Good thinking! '+it.explanation,'ok');
+      } else {
+        const general = kind==='coordinating'
+          ? `“${this.chosen}” is a coordinating conjunction, which usually makes a compound sentence.`
+          : `“${this.chosen}” is a subordinating conjunction, which usually makes a complex sentence.`;
+        setFb($('g3fb'),`Look carefully at the connector. ${general} The connector that best fits the meaning here is <strong>${it.bestAnswer}</strong>. ${it.explanation}`,'hint');
+      }
+    } else { // student text — accept any, give connector-based guidance
+      let g;
+      if(kind==='coordinating'){
+        g = `You chose “${this.chosen}.” This is a coordinating conjunction, so it often makes a <strong>compound</strong> sentence. Check whether both ideas can stand alone.`;
+        if(this.chosen==='but') g = `You chose “but.” This connector shows contrast. Check whether the two ideas are different or surprising together. It often makes a compound sentence.`;
+        if(this.chosen==='so')  g = `You chose “so.” This connector shows a result. Check whether the second idea is the result of the first. It often makes a compound sentence.`;
+      } else {
+        g = `You chose “${this.chosen}.” This is a subordinating conjunction, so it often makes a <strong>complex</strong> sentence. The part beginning with “${this.chosen}” is dependent.`;
+        if(this.chosen==='because') g = `You chose “because.” This connector shows a reason. Check whether the second idea explains why the first idea happened. It often makes a complex sentence.`;
+        if(this.chosen==='when') g = `You chose “when.” This connector shows time or condition. The part beginning with “when” is dependent, so it often makes a complex sentence.`;
+      }
+      setFb($('g3fb'), g + "<br><em>This is a practice activity. Some sentence types may need teacher review.</em>", 'ok');
+    }
+  },
+  hint(){
+    const it=this.items[this.i];
+    if(it.bestAnswer) setFb($('g3fb'),'💡 Think about the relationship between the two ideas: reason (because), contrast (but/although), time (when), or result (so). Coordinating conjunctions (and, but, so, or) make compound sentences; subordinating conjunctions (because, although, when, if, while) make complex sentences.','hint');
+    else setFb($('g3fb'),'💡 Ask what relationship the two ideas have: are they similar (and), different (but), cause/result (so, because), or about time (when)? Choose the connector that fits the meaning.','hint');
+  },
+  reset(){ this.render(); },
+  next(){ this.i=(this.i+1)%this.items.length; this.render(); }
+};
+
+/* ===== GAME 4: CHANGE THE SENTENCE ===== */
+const G4 = {
+  i:0, items:[],
+  load(){
+    if(APP.isDefault){ this.items = transformationTasks.slice(); }
+    else {
+      const pick = shuffle(APP.sentences).slice(0, Math.min(5, APP.sentences.length));
+      const targets = ["compound","complex"];
+      this.items = pick.map((s,n)=>{
+        const t = targets[n%2];
+        return {
+          original:s, target:t,
+          task: t==='compound'
+            ? "Change this sentence into a compound sentence by joining it with another idea using and, but, or so."
+            : "Change this sentence into a complex sentence by adding a dependent clause using because, although, when, if, before, after, or while.",
+          possible:null, feedback:null
+        };
+      });
+    }
+    this.i=0; this.render();
+  },
+  render(){
+    const it=this.items[this.i];
+    $('g4prog').textContent = `Sentence ${this.i+1} of ${this.items.length}`;
+    $('g4orig').textContent = '“'+it.original+'”';
+    $('g4task').textContent = it.task;
+    $('g4input').value='';
+    setFb($('g4fb'),'','');
+  },
+  keyOverlap(orig, ans){
+    const stop = new Set(["the","a","an","of","in","to","and","is","are","was","were","that","this","with","for","on","at","it","its","his","her","their"]);
+    const words = orig.toLowerCase().replace(/[^a-z'\s]/g,'').split(/\s+/).filter(w=>w.length>3 && !stop.has(w));
+    const aset = new Set(ans.toLowerCase().replace(/[^a-z'\s]/g,'').split(/\s+/));
+    let hits = words.filter(w=>aset.has(w)).length;
+    return hits;
+  },
+  check(){
+    const it=this.items[this.i];
+    const ans=$('g4input').value.trim();
+    if(!ans){ setFb($('g4fb'),'Write your new sentence first.','hint'); return; }
+    const lower=" "+ans.toLowerCase()+" ";
+    const hasCoord = COORD.some(c=>new RegExp("\\b"+c+"\\b").test(lower));
+    const hasSub   = SUB.some(w=>new RegExp("\\b"+w+"\\b").test(lower)) || SUB_MULTI.some(w=>lower.includes(" "+w+" "));
+    const overlap = this.keyOverlap(it.original, ans);
+
+    let msg="Good attempt. ", kind="ok";
+    // feature checks based on target
+    if(it.target==='compound'){
+      if(hasCoord) msg += "I see a coordinating conjunction, so your sentence may be <strong>compound</strong>. Check whether both sides can stand alone as complete sentences. ";
+      else { msg += "For a compound sentence, try adding a coordinating conjunction such as <em>and, but,</em> or <em>so</em> with a comma. "; kind="hint"; }
+    } else if(it.target==='complex'){
+      if(hasSub) msg += "I see a subordinating conjunction, so your sentence may be <strong>complex</strong>. Now check whether the part after that connector has a subject and a verb. ";
+      else { msg += "For a complex sentence, try adding a dependent clause that begins with <em>because, although, when, if, before, after,</em> or <em>while</em>. "; kind="hint"; }
+    } else { // simpler
+      msg += "Try breaking the long idea into two or three shorter sentences. Each new sentence should have one independent clause. ";
+    }
+    // meaning connection
+    if(overlap>0) msg += "You kept key words from the original idea, which helps keep the meaning. ";
+    else msg += "Try to keep some key words from the original sentence so the meaning stays connected. ";
+
+    if(it.feedback) msg += "<br><br><strong>Teacher note:</strong> "+it.feedback+"<br><em>Example answer:</em> “"+it.possible+"”";
+    msg += "<br><em>This is a practice activity. Some sentence types may need teacher review.</em>";
+    setFb($('g4fb'), msg, kind);
+  },
+  hint(){
+    const it=this.items[this.i];
+    let h;
+    if(it.target==='compound') h="💡 Compound = two independent clauses joined by a coordinating conjunction. Pattern: idea + , + and/but/so + another complete idea.";
+    else if(it.target==='complex') h="💡 Complex = one independent clause + one dependent clause. Add a part beginning with because, although, when, if, before, after, or while.";
+    else h="💡 Break the long sentence at natural stopping points. Make each new sentence one complete idea with a subject and a verb.";
+    setFb($('g4fb'),h,'hint');
+  },
+  reset(){ $('g4input').value=''; setFb($('g4fb'),'',''); },
+  next(){ this.i=(this.i+1)%this.items.length; this.render(); }
+};
+</script>
+</body>
+</html>
